@@ -1,0 +1,301 @@
+#include <windows.h>
+#include <stdio.h>
+#include <time.h>
+#include <string.h>
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, 
+         WPARAM wParam, LPARAM lParam);
+
+
+LPCTSTR lpszClass = TEXT("Menu");
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
+         LPSTR lpszCmdLine, int nCmdShow)
+{
+   HWND   hwnd;
+   MSG      msg;
+   WNDCLASS WndClass;   
+   WndClass.style         = CS_HREDRAW | CS_VREDRAW;
+   WndClass.lpfnWndProc   = WndProc;      
+   WndClass.cbClsExtra      = 660;      
+   WndClass.cbWndExtra      = 660;      
+   WndClass.hInstance      = hInstance;      
+   WndClass.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+   WndClass.hCursor      = LoadCursor(NULL, IDC_ARROW);   
+   WndClass.hbrBackground   = (HBRUSH)GetStockObject(WHITE_BRUSH);   
+   WndClass.lpszMenuName   = NULL;      
+   WndClass.lpszClassName   = lpszClass;   
+   RegisterClass(&WndClass);   
+
+   hwnd = CreateWindow(lpszClass,
+      lpszClass,
+      WS_OVERLAPPEDWINDOW,
+      CW_USEDEFAULT,   
+      CW_USEDEFAULT,   
+      CW_USEDEFAULT,   
+      CW_USEDEFAULT,   
+      NULL,   
+      NULL,   
+      hInstance,   
+      NULL    
+   );
+   ShowWindow(hwnd, nCmdShow);
+   UpdateWindow(hwnd);
+
+   while(GetMessage(&msg, NULL, 0, 0))
+   {
+      TranslateMessage(&msg);   
+      DispatchMessage(&msg);   
+   }   
+   return (int)msg.wParam;
+}
+
+
+void Snake(HDC hdc, int *x, int *y, int len){
+   for(int i=0; i<len; i++){
+      if(i==0){
+         SelectObject(hdc, CreateSolidBrush(RGB(0, 0, 255)));
+         
+      }else{
+         SelectObject(hdc, CreateSolidBrush(RGB(0, 255, 255)));
+      }
+      Rectangle(hdc, x[i]-10, y[i]-10, x[i]+10, y[i]+10);
+   }
+}
+
+
+void Snake_new(HWND hwnd, int *wid, int *hei, int len){
+   wid[len + 1] = wid[len];
+   hei[len + 1] = hei[len];
+   len++;
+   InvalidateRgn(hwnd, NULL, TRUE);
+}
+
+int fdx[10]={};
+int fdy[10]={};
+
+
+
+void Food_make(HDC hdc, int *fdx, int *fdy){
+   
+
+   for(int i=0;i<10;i++){
+      SelectObject(hdc, CreateSolidBrush(RGB(255, 255, 255)));
+      Rectangle(hdc, fdx[i]-10, fdy[i]-10, fdx[i]+10, fdy[i]+10);
+      TextOut(hdc, fdx[i]-4, fdy[i]-8, "T", 1);
+   }
+      
+   
+}
+
+void Food_map(HWND hwnd, int *x, int *y){
+   int tmp;
+   for(int i=0;i<10;i++){
+      do{
+         *x=(rand()%580);
+         tmp = *x % 10;
+         *x -= tmp;
+      }while(*x%20!=10);
+
+      do {
+         *y = (rand() %580);
+         tmp = *y % 10;
+         *y -= tmp;
+      } while (*y % 20 != 10);
+
+      fdx[i]= *x;
+      fdy[i]=*y;
+   }
+
+   InvalidateRgn(hwnd, NULL, TRUE);
+}
+
+
+
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, 
+          WPARAM wParam, LPARAM lParam)     
+{
+   HDC hdc;
+   PAINTSTRUCT ps;
+   
+
+   static COLORREF fColor;
+
+
+   static int wid[100] = { 30, 10 };
+   static int hei[100] = { 30, 30};
+   static int len = 2;
+   static int x, y;
+   static int count;
+   static int iResult;
+
+
+   
+   
+
+   
+
+   switch (iMsg) 
+   {
+   case WM_CREATE:  
+      fColor = RGB(0,0,0);
+      Food_map(hwnd, &x, &y);
+      x=y=0;
+      iResult=0;
+      count=0;
+      
+   
+      
+
+   case WM_KEYDOWN:
+
+      
+      if (wParam == VK_UP) {
+         SetTimer(hwnd, 1, 300, NULL);   
+      }
+      else {
+         KillTimer(hwnd, 1);
+      }
+
+      if (wParam == VK_DOWN) {
+         SetTimer(hwnd, 2, 300, NULL);
+      }
+      else{
+         KillTimer(hwnd, 2);
+      }
+
+      if (wParam == VK_LEFT) {
+         SetTimer(hwnd, 3, 300, NULL);   
+      }
+      else{
+         KillTimer(hwnd, 3);
+      }
+
+      if (wParam == VK_RIGHT || wParam == 'S') {
+         SetTimer(hwnd, 4,300, NULL);
+         SetTimer(hwnd, 5, 500, NULL);
+      }
+      else if(wParam != 'S'){
+         KillTimer(hwnd, 4);
+      }
+
+      if(wParam == 'E'){
+         int iResult = MessageBox(hwnd,"EXIT.","게임 종료",MB_OK);
+         if(iResult==IDOK)
+            SendMessage(hwnd,WM_CLOSE,NULL,NULL);
+         break;
+      }
+      
+
+   break;
+      
+   
+
+   case WM_TIMER:
+      
+      HDC hdc;
+
+      switch(wParam){
+      case 1:
+         for (int i = 0; i < len; i++) {
+               wid[len - i] = wid[len - i - 1];
+               hei[len - i] = hei[len - i - 1];
+            }
+         hei[0] -= 20;
+         InvalidateRect(hwnd, NULL, TRUE);
+         break;
+      case 2:
+      
+         for (int i = 0; i < len; i++) {
+               wid[len - i] = wid[len - i - 1];
+               hei[len - i] = hei[len - i - 1];
+            }
+         hei[0] += 20;
+         InvalidateRect(hwnd, NULL, TRUE);
+         break;
+      case 3:
+         
+         for (int i = 0; i < len; i++) {
+               wid[len - i] = wid[len - i - 1];
+               hei[len - i] = hei[len - i - 1];
+            }
+         wid[0] -= 20;
+         InvalidateRect(hwnd, NULL, TRUE);
+         break;
+      case 4:
+         
+         for (int i = 0; i < len; i++) {
+               wid[len - i] = wid[len - i - 1];
+               hei[len - i] = hei[len - i - 1];
+            }
+         wid[0] += 20;
+         InvalidateRect(hwnd, NULL, TRUE);
+         break;
+      case 5:
+         for(int i=0;i<10;i++){
+            if (wid[0] == fdx[i] && hei[0]==fdy[i]) {
+                  count++;
+                  fdx[i]=NULL;
+                  fdy[i]=NULL;
+                  if(count==10){
+                     int iResult = MessageBox(hwnd,"VICTORY","게임 종료",MB_OK);
+                        if(iResult==IDOK){
+                           SendMessage(hwnd,WM_CLOSE,NULL,NULL);
+                     }
+                  break;
+               }
+            }
+            
+         }
+         if(len<=11){
+            wid[len + 1] = wid[len];
+            hei[len + 1] = hei[len];
+            len++;
+            if(len==100){
+               int iResult = MessageBox(hwnd,"DEFEAT","나가기",MB_OK);
+               if(iResult==IDOK){
+                  SendMessage(hwnd,WM_CLOSE,NULL,NULL);
+               }
+               break;
+            }
+         }
+         InvalidateRect(hwnd, NULL, FALSE);
+      }
+      break;
+         
+      
+
+
+   
+   case WM_PAINT:
+         
+      hdc = BeginPaint(hwnd, &ps);
+      WCHAR str[10];
+
+	  if(count<10){
+		  wsprintfW(str, L"점수 %d", count);
+		  TextOutW(hdc, 600, 600, str, 4);
+	  }
+	  else{
+		  wsprintfW(str, L"점수 %d", count);
+		  TextOutW(hdc, 600, 600, str, 5);
+	  }
+
+      Food_make(hdc, fdx, fdy);
+
+      Snake(hdc, wid, hei, len);
+
+      
+      
+      EndPaint(hwnd, &ps);
+      
+      break;
+
+   case WM_DESTROY:
+      PostQuitMessage(0);
+      break;
+
+   } 
+   return DefWindowProc(hwnd, iMsg, wParam, lParam); 
+}
